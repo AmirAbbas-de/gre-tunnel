@@ -11,7 +11,7 @@ Run the exact same command on **both** servers. The interactive script will guid
 ```bash
 bash <(curl -Ls https://raw.githubusercontent.com/AmirAbbas-de/gre-tunnel/main/tunnel.sh)
 ```
-🛠️ Deployment Workflow
+## 🛠️ Deployment Workflow
 For a proper setup, always execute the script on the Iran Server first, then proceed to the Foreign Server.
 
 Step 1: Iran Server Configuration
@@ -54,7 +54,7 @@ Executes full outward MASQUERADE NAT on the active network interface.
 
 Integrates iptables-persistent to prevent routing rule wipes during system updates or reboots.
 
-🌐 3x-ui Panel Configuration Reference
+## 🌐 3x-ui Panel Configuration Reference
 Once the panel installation is finished on your Iran Server, you need to mark your proxy outbounds to go through the GRE tunnel:
 
 Access your 3x-ui Web Panel.
@@ -74,7 +74,7 @@ JSON
     }
   }
 }
-🔍 Troubleshooting & Verification
+## 🔍 Troubleshooting & Verification
 If you experience connectivity issues, check the tunnel layer by running these basic diagnostic diagnostics:
 
 1. Test Internal Tunnel Ping
