@@ -10,6 +10,7 @@ fi
 GREEN='\e[32m'
 RED='\e[31m'
 NC='\e[0m'
+YELLOW='\e[33m'
 
 echo -e "${GREEN}=== Advanced GRE Tunnel & 3x-ui Automatic Setup ===${NC}"
 echo "1) Configure Iran Server"
@@ -48,7 +49,6 @@ echo -e "${GREEN}[+] Detected primary network interface: $MAIN_INTF${NC}"
 reset_tunnel() {
     ip link set $INTERFACE down 2>/dev/null
     ip tunnel del $INTERFACE 2>/dev/null
-    # Clean old routing rule matching this specific table
     ip rule del fwmark 1 lookup 100 2>/dev/null
 }
 
@@ -97,7 +97,32 @@ EOF
     bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
     
     echo -e "${GREEN}=== Iran Server Configuration Complete ===${NC}"
-    echo -e "Tunnel local IP: ${TUNNEL_IRAN_IP} | Remote IP: ${TUNNEL_KHARJ_IP}"
+    
+    # === BASH TROUBLESHOOTING SECTION FOR IRAN SERVER ===
+    echo -e "\n${YELLOW}🔍 Running Automated Troubleshooting & Verification...${NC}"
+    echo -e "Checking interface status..."
+    if ip link show $INTERFACE | grep -q "UP"; then
+        echo -e "${GREEN}[PASS] Interface $INTERFACE is UP with MTU $MTU.${NC}"
+    else
+        echo -e "${RED}[FAIL] Interface $INTERFACE is DOWN or missing!${NC}"
+    fi
+    
+    echo -e "Checking policy routing rule..."
+    if ip rule show | grep -q "fwmark 0x1 lookup 100"; then
+        echo -e "${GREEN}[PASS] Policy routing for fwmark 1 is active.${NC}"
+    else
+        echo -e "${RED}[FAIL] Policy routing rule is missing!${NC}"
+    fi
+
+    echo -e "\n${YELLOW}[!] Testing internal tunnel ping to Foreign Server (${TUNNEL_KHARJ_IP})...${NC}"
+    echo -e "Waiting 3 seconds for tunnel initialization..."
+    sleep 3
+    if ping -c 3 -W 2 ${TUNNEL_KHARJ_IP} > /dev/null; then
+        echo -e "${GREEN}[SUCCESS] Tunnel connectivity test passed! Ping successful.${NC}"
+    else
+        echo -e "${RED}[WARNING] Cannot ping Foreign internal IP (${TUNNEL_KHARJ_IP}) yet.${NC}"
+        echo -e "${YELLOW}Please ensure you have completed Option 2 on the Foreign server and that GRE protocol (47) is allowed in your hosting firewall.${NC}"
+    fi
 
 elif [ "$SERVER_TYPE" == "2" ]; then
     echo -e "${GREEN}[+] Configuring Foreign (Kharj) Server...${NC}"
@@ -125,7 +150,7 @@ elif [ "$SERVER_TYPE" == "2" ]; then
     iptables -t nat -D POSTROUTING -o $MAIN_INTF -j MASQUERADE 2>/dev/null
     iptables -t nat -A POSTROUTING -o $MAIN_INTF -j MASQUERADE
     
-    # Install iptables-persistent to save NAT configurations across reboots safely
+    # Install iptables-persistent to save NAT configurations safely
     if [ -d /etc/iptables ]; then
         iptables-save > /etc/iptables/rules.v4
     else
@@ -134,10 +159,33 @@ elif [ "$SERVER_TYPE" == "2" ]; then
         iptables-save > /etc/iptables/rules.v4
     fi
     
-    echo -e "${GREEN}=== Current NAT Rules on Foreign Server ===${NC}"
-    iptables -t nat -L -n -v
     echo -e "${GREEN}=== Foreign Server Configuration Complete ===${NC}"
-    echo -e "Tunnel local IP: ${TUNNEL_KHARJ_IP} | Remote IP: ${TUNNEL_IRAN_IP}"
+    
+    # === BASH TROUBLESHOOTING SECTION FOR FOREIGN SERVER ===
+    echo -e "\n${YELLOW}🔍 Running Automated Troubleshooting & Verification...${NC}"
+    echo -e "Checking IP Forwarding status..."
+    if [ "$(cat /proc/sys/net/ipv4/ip_forward)" -eq 1 ]; then
+        echo -e "${GREEN}[PASS] Core IP Forwarding is active.${NC}"
+    else
+        echo -e "${RED}[FAIL] Core IP Forwarding is disabled!${NC}"
+    fi
+
+    echo -e "Checking NAT Masquerade rule..."
+    if iptables -t nat -L POSTROUTING -n -v | grep -q "MASQUERADE"; then
+        echo -e "${GREEN}[PASS] Iptables NAT Masquerade is active on $MAIN_INTF.${NC}"
+    else
+        echo -e "${RED}[FAIL] NAT Masquerade rule was not applied properly!${NC}"
+    fi
+
+    echo -e "\n${YELLOW}[!] Testing internal tunnel ping to Iran Server (${TUNNEL_IRAN_IP})...${NC}"
+    echo -e "Waiting 3 seconds for tunnel initialization..."
+    sleep 3
+    if ping -c 3 -W 2 ${TUNNEL_IRAN_IP} > /dev/null; then
+        echo -e "${GREEN}[SUCCESS] Tunnel connectivity test passed! Ping successful.${NC}"
+    else
+        echo -e "${RED}[WARNING] Cannot ping Iran internal IP (${TUNNEL_IRAN_IP}) yet.${NC}"
+        echo -e "${YELLOW}Please ensure you have completed Option 1 on the Iran server and that GRE protocol (47) is allowed in your hosting firewall.${NC}"
+    fi
 else
     echo -e "${RED}Invalid selection. Exiting.${NC}"
     exit 1
