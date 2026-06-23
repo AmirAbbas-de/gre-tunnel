@@ -9,4 +9,4 @@ An interactive, production-ready Bash script to establish a secure **GRE Tunnel*
 Run the exact same command on **both** servers. The interactive script will guide you through the setup.
 
 ```bash
-bash <(curl -Ls [https://raw.githubusercontent.com/AmirAbbas-de/gre-tunnel/main/tunnel.sh](https://raw.githubusercontent.com/AmirAbbas-de/gre-tunnel/main/tunnel.sh))
+bash <(curl -Ls https://raw.githubusercontent.com/AmirAbbas-de/gre-tunnel/main/tunnel.sh)
